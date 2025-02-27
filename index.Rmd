@@ -4,3 +4,75 @@ author: "Alexander Rogers"
 date: "2025-02-27"
 output: html_document
 ---
+
+```{r}
+library(tidyverse)
+library(languageR)
+library(untidydata)
+```
+
+```{r}
+data(package = "untidydata")
+```
+
+```{r}
+spir <- spirantization
+```
+
+```{r}
+#| label: Tidying the data.
+sprn <- spir |>
+  separate(
+    col = id,
+    into = c("prof", "num"),
+    sep = "_",
+    remove = FALSE
+  ) |>
+  pivot_longer(
+    cols = c("cIntensity", "vIntensity"),
+    names_to = "item",
+    values_to = "intensity"
+  ) |>
+  pivot_wider(
+    names_from = "position",
+    values_from = "intensity"
+  ) |>
+  mutate(
+    item = if_else(item == "cIntensity", "Obstruent", "Vowel")
+  )
+```
+
+```{r}
+#| label: descriptive statistics, Average intensity for each proficiency group.
+sprn |>
+  group_by(prof, item) |>
+  summarize(
+    avgin = mean(initial),
+    avgvcv = mean(vcv),
+    sdin = sd(initial),
+    sdvcv = sd(vcv)
+  )
+```
+
+```{r}
+#| label: Fitting linear model
+
+mod <- lm(
+  formula = initial ~ vcv,
+  data = sprn
+)
+
+print(mod)
+```
+
+```{r}
+#| label: Vizualising linear relationships in data
+
+sprn |>
+  ggplot() +
+  aes(x = initial, y = vcv, color = prof) +
+  geom_point() +
+  geom_smooth(method = "lm")
+```
+
+There appears to be a significant difference between proficiency groups. Native speakers have overal higher intensity than advanced speakers, who have overall higher intensity than beginners. Furthermore, it appears that if a speaker has higher intensities after an obstruent, they also have higher intensity following vowels, though this difference is blurrier between the learner groups, whereas native speakers have a clear pattern. 
